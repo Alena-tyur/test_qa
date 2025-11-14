@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Игра "Перевертыши"</title>
+  <style>
+    :root {
+      --bg: #0f1115;
+      --card: #161922;
+      --text: #e6e8ee;
+      --muted: #a9afbf;
+      --accent: #6ea8fe;
+      --cell-bg: #1f2430;
+      --cell-border: #2a3242;
+      --cell-focus: #89b4ff;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans", Ubuntu, Cantarell, "Helvetica Neue", Arial;
+      line-height: 1.5;
+    }
+
+    .page {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 20px clamp(16px, 4vw, 32px);
+    }
+
+    header {
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-size: clamp(20px, 5vw, 28px);
+      margin: 0 0 8px 0;
+    }
+
+    .subtitle {
+      font-size: clamp(14px, 3.8vw, 16px);
+      color: var(--muted);
+      margin: 0;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid #222938;
+      border-radius: 14px;
+      padding: clamp(14px, 3.8vw, 18px);
+      box-shadow: 0 8px 18px rgba(0,0,0,0.25);
+    }
+
+    .q {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 12px;
+    }
+
+    .q + .q {
+      margin-top: 14px;
+      border-top: 1px dashed #283045;
+      padding-top: 20px;
+    }
+
+    .prompt {
+      font-weight: 600;
+      font-size: clamp(15px, 4.2vw, 18px);
+    }
+
+    .hint {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .cells {
+      display: grid;
+      gap: 6px;
+      grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    }
+
+    .cell {
+      width: 100%;
+      height: 44px;
+      min-width: 36px;
+      max-width: 54px;
+      text-align: center;
+      font-weight: 700;
+      font-size: clamp(16px, 4.8vw, 18px);
+      color: var(--text);
+      background: var(--cell-bg);
+      border: 2px solid var(--cell-border);
+      border-radius: 8px;
+      outline: none;
+      text-transform: uppercase;
+      caret-color: var(--accent);
+    }
+
+    .cell:focus {
+      border-color: var(--cell-focus);
+      box-shadow: 0 0 0 3px rgba(137,180,255,0.25);
+      background: #232838;
+    }
+
+    .highlight {
+      background: #ffeb3b; /* полная заливка */
+      color: #000;
+    }
+
+    .btn-check {
+      display: inline-block;
+      background: var(--accent);       /* тот же акцентный цвет, что и в теме */
+      color: #0b1730;                  /* тёмный текст для контраста */
+      font-weight: 700;
+      font-size: clamp(16px, 4.5vw, 18px);
+      padding: 12px 20px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.25s ease, transform 0.1s ease;
+      box-shadow: 0 4px 12px rgba(110,168,254,0.4);
+    }
+
+    .btn-check:hover {
+      background: #89b4ff;             /* чуть светлее при наведении */
+      transform: translateY(-2px);     /* лёгкий подъём */
+    }
+
+    .btn-check:active {
+      transform: translateY(0);        /* возвращается при клике */
+      box-shadow: 0 2px 8px rgba(110,168,254,0.3);
+    }
+
+    /* затемнение фона */
+    .popup {
+      display: none; /* скрыто по умолчанию */
+      position: fixed;
+      z-index: 999;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+    }
+
+    /* блок внутри */
+    .popup-content {
+      background: var(--card);
+      color: var(--text);
+      margin: 15% auto;
+      padding: 20px;
+      border-radius: 12px;
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+    }
+
+    /* кнопка закрытия */
+    .popup-close {
+      position: absolute;
+      right: 20px;
+      top: 10px;
+      font-size: 28px;
+      font-weight: bold;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .popup-close:hover {
+      color: var(--accent);
+    }
+
+
+
+    @media (max-width: 420px) {
+      .cells {
+        gap: 5px;
+        grid-template-columns: repeat(auto-fill, minmax(34px, 1fr));
+      }
+      .cell {
+        height: 42px;
+      }
+    }
+
+    .note {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>Игра «Перевертыши»</h1>
+      <p class="subtitle">Запишите свои ответы в формы ниже, не включая пробелы и знаки препинания.</p>
+    </header>
+
+    <section class="card">
+
+      <h2 class="theme">ТВ передачи</h2>
+
+      <!-- 1) «Бар Грустных и Растерянных» — 3 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Бар Грустных и Растерянных» — 3 буквы</div>
+        <div class="cells" role="group" aria-label="Ответ из 3 букв">
+          <input id="q1c1" class="cell" type="text" maxlength="1" />
+          <input id="q1c2" class="cell" type="text" maxlength="1" />
+          <input id="q1c3" class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 2) «Не смеют молчать» — 12 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Не смеют молчать» — 12 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 12 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 3) «Белорусские чебуреки» — 17 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Белорусские чебуреки» — 17 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 17 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 4) «Пора разводиться!» — 14 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Пора разводиться!» — 14 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 14 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 5) «Доброе утро, старушки!» — 19 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Доброе утро, старушки!» — 19 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 19 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 6) «Ровное отражение» — 13 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Ровное отражение» — 13 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 13 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <h2 class="theme">Фильмы / сериалы (русские и зарубежные)</h2>
+
+      <!-- 1) «Многие на улице» — 8 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Многие на улице» — 8 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 8 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 2) «Враги» — 6 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Враги» — 6 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 6 букв">
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 3) «Известные факты» — 18 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Известные факты» — 18 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 18 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 4) «Ненависть и ястребы» — 13 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Ненависть и ястребы» — 13 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 13 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <!-- 5) «Ненастоящие девчонки» — 14 -->
+      <form class="q" autocomplete="off">
+        <div class="prompt">«Ненастоящие девчонки» — 14 букв</div>
+        <div class="cells" role="group" aria-label="Ответ из 14 букв">
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+          <input class="cell" type="text" maxlength="1" />
+        </div>
+      </form>
+
+      <h2 class="theme">Теперь соберите финальное слово из выделенных букв</h2>
+
+      <!-- Молодцы -->
+      <form id= "form1" class="q" autocomplete="off">
+        <div class="cells" role="group" aria-label="Ответ из 7 букв">
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+          <input class="cell highlight" type="text" maxlength="1" />
+        </div>
+        <button type="button" class="btn-check">Проверить</button>
+        <span class="result"></span>
+      </form>
+      
+    </section>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        // --- Автопереход фокуса ---
+        document.querySelectorAll(".cells").forEach((row) => {
+          const inputs = Array.from(row.querySelectorAll(".cell"));
+          inputs.forEach((input, idx) => {
+            input.addEventListener("input", () => {
+              if (input.value.length === 1) {
+                const next = inputs[idx + 1];
+                if (next) next.focus();
+              }
+            });
+            input.addEventListener("keydown", (e) => {
+              if (e.key === "Backspace" && input.value === "") {
+                const prev = inputs[idx - 1];
+                if (prev) prev.focus();
+              }
+            });
+          });
+        });
+
+        // --- Проверка только для одной формы (id="form1") ---
+        const form = document.getElementById("form1");
+        const inputs = form.querySelectorAll(".cell");
+        const button = form.querySelector(".btn-check");
+
+        const popup = document.getElementById("popup");
+        const popupMessage = document.getElementById("popup-message");
+        const popupClose = document.getElementById("popup-close");
+
+        const correctAnswer = "МОЛОДЦЫ"; // правильный ответ
+
+        button.addEventListener("click", () => {
+          let answer = "";
+          inputs.forEach(inp => answer += inp.value.trim().toUpperCase());
+
+          if (answer === correctAnswer) {
+            popupMessage.textContent = "✅ Ураааа, бежим пить!";
+            popupMessage.style.color = "limegreen";
+          } else {
+            popupMessage.textContent = "❌ Ну вы че как лохи";
+            popupMessage.style.color = "crimson";
+          }
+          popup.style.display = "block"; // показать поп‑ап
+        });
+
+        // закрытие поп‑апа
+        popupClose.addEventListener("click", () => {
+          popup.style.display = "none";
+        });
+        window.addEventListener("click", (e) => {
+          if (e.target === popup) {
+            popup.style.display = "none";
+          }
+        });
+      });
+      </script>
+
+  </main>
+
+  <!-- Модальное окно -->
+  <div id="popup" class="popup">
+    <div class="popup-content">
+      <span id="popup-close" class="popup-close">&times;</span>
+      <p id="popup-message"></p>
+    </div>
+  </div>
+
+</body>
+</html>
+
